@@ -1,4 +1,3 @@
-import { Card } from "../card"
 import { GameCard } from "./card"
 import { GameEffect } from "./effect"
 import { Turn } from "./turn"
@@ -12,7 +11,3 @@ export interface Game {
 }
 
 export type Player = string
-
-export type Hands = Card[]
-
-export type Plays = Array<Card | undefined>
