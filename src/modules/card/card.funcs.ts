@@ -1,11 +1,11 @@
 import { suits, ranks } from "./card.consts"
-import { Card, Rank } from "./card.types"
+import { Card } from "./card.types"
 
 export function generateDeck(): Card[] {
   return ranks.flatMap(rank => suits.map(suit => ({ rank, suit })))
 }
 
-export function rankToNumber(rank: Rank): number {
+export function getRankInNumber({ rank }: Card): number {
   if (rank === 'J') {
     return 11
   }

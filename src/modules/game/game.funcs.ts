@@ -1,22 +1,24 @@
 import * as Cards from "../card";
 import * as Arrays from "../array";
-
-import type { Option } from "../option";
 import * as Opt from "../option";
-import type { ActionDraw, ActionPlay, GameAction } from "./action";
-import type { GameCard } from "./card";
 import * as GameCards from "./card";
 import * as Effects from "./effect";
-import type { Game, Player } from "./game.types";
-import * as Turns from "./turn";
-import type { Card } from "../card";
+import * as Players from "../player";
+import * as GamePlayers from './player';
+import * as PlayEndingNextActions from './effect/nextAction';
 
-export function create(players: Player[]): Game {
+import type { Card } from "../card";
+import type { Option } from "../option";
+import type { ActionDraw, ActionPlay, GameAction } from "./action";
+import type { Game } from "./game.types";
+import type { GamePlayer, PlayerActive } from "./player";
+
+const CARDS_PER_PLAYER = 7
+export function create(playerNames: string[], cardsPerPlayer = CARDS_PER_PLAYER): Game {
+  const players = initializePlayers(playerNames)
   return { 
     players,
-    cards: initalizeCards(players),
-    turn: initializeTurn(players),
-    winner: Turns.Nobody(),
+    cards: initalizeCards(players, cardsPerPlayer),
     effect: Effects.NoOp(),
   }
 }
@@ -29,6 +31,8 @@ export function reduce(game: Game, action: GameAction): Game {
       return handlePlayNextAction(game)
     case 'draw':
       return handleDrawAction(game, action)
+    case 'rake':
+      return handleRakeAction(game)
     default:
       return game
   }
@@ -36,49 +40,64 @@ export function reduce(game: Game, action: GameAction): Game {
 
 function handlePlayAction(game: Game, action: ActionPlay): Game {
   const playedGame = playCard(game, action);
-  const currentGameWinner = getGameWinner(playedGame);
-  if (Turns.isActive(currentGameWinner)) {
+  const { 
+    hasWinner: hasGameWinner, 
+    players: newGameWinnerPlayers 
+  } = getGameWinner(playedGame);
+
+  if (hasGameWinner) {
     return {
-      ...game,
-      turn: Turns.Nobody(),
-      winner: currentGameWinner,
+      ...playedGame,
+      players: newGameWinnerPlayers,
     }
   }
 
-  const currentPlayWinner = getPlayWinner(playedGame);
-  if (Turns.isActive(currentPlayWinner)) {
+  const { 
+    winner: playWinner, 
+    players: newPlayWinnerPlayers 
+  } = getPlayWinner(playedGame);
+
+  if (Opt.isSome(playWinner)) {
     return {
-      ...game,
-      turn: Turns.Nobody(),
-      effect: Effects.PlayEnding(currentPlayWinner)
+      ...playedGame,
+      players: newPlayWinnerPlayers,
+      effect: Effects.PlayEnding(
+        playWinner.value, 
+        PlayEndingNextActions.Flush(),
+      )
     }
   }
 
-  const { players, turn } = playedGame
-  const nextTurn = Turns.nextTurn(players.length, turn)
+  const nextPlayers = getDefaultNextPlayers(playedGame)
   return {
-    ...game,
-    turn: nextTurn,
+    ...playedGame,
+    players: nextPlayers,
   }
 }
 
 function handlePlayNextAction(game: Game): Game {
-  const { effect, cards } = game
+  const { effect } = game
   if (!Effects.isPlayEnding(effect)) {
     return game
   }
 
-  const flushedCards = flushCards(cards)
+  const { nextAction } = effect
+  const nextCards = PlayEndingNextActions.when({
+    flush: () => flushCards(game),
+    rake: raker => rakeCards(game, raker),
+  }, nextAction)
+
+  const nextPlayers = getStartingNextPlayers(game)
   return {
     ...game,
-    cards: flushedCards,
-    turn: effect.winner,
+    players: nextPlayers,
+    cards: nextCards,
     effect: Effects.NoOp(),
   }
 }
 
 function handleDrawAction(game: Game, { card: drawnCard }: ActionDraw): Game {
-  const currentPlayer = getCurrentPlayer(game)
+  const currentPlayer = getActivePlayer(game)
   if (Opt.isNone(currentPlayer)) {
     return game;
   }
@@ -98,20 +117,56 @@ function handleDrawAction(game: Game, { card: drawnCard }: ActionDraw): Game {
     cards: newGameCards,
   }
 }
- 
-function initalizeCards(players: Player[]) {
+
+function handleRakeAction(game: Game): Game {
+  const currentPlayer = getActivePlayer(game)
+  if (Opt.isNone(currentPlayer)) {
+    return game;
+  }
+
+  const { 
+    winner: playWinner, 
+    players: newPlayWinnerPlayers 
+  } = getPlayWinner(game, true);
+
+  if (Opt.isNone(playWinner)) {
+    return game;
+  }
+
+  return {
+    ...game,
+    players: newPlayWinnerPlayers,
+    effect: Effects.PlayEnding(
+      playWinner.value,
+      PlayEndingNextActions.Rake(currentPlayer.value),
+    )
+  }
+}
+  
+function initializePlayers(names: string[]) {
+  const players = Players.toPlayers(names)
+  const firstTurn = Math.floor(Math.random() * players.length)
+
+  return players.map((player) => {
+    if (firstTurn === player.id) {
+      return GamePlayers.Active(player)
+    }
+    return GamePlayers.Passive(player)
+  })
+}
+
+function initalizeCards(players: GamePlayer[], cardsPerPlayer: number) {
   const deck = Cards.generateDeck()
   const shuffledDeck = Arrays.shuffle(deck)
-  const finalCards = distributeCards(shuffledDeck, players)
+  const finalCards = distributeCards(shuffledDeck, players, cardsPerPlayer)
 
   return finalCards
 }
 
-const CARDS_PER_PLAYER = 7
-function distributeCards(cards: Card[], players: Player[]) {
+function distributeCards(cards: Card[], players: GamePlayer[], cardsPerPlayer: number) {
   return cards.map((card, cardIndex) => {
     const targetPlayer = players[cardIndex % players.length]
-    const handsCapacity = players.length * CARDS_PER_PLAYER
+    const handsCapacity = players.length * cardsPerPlayer
 
     if (cardIndex < handsCapacity) {
       return GameCards.Hand(card, targetPlayer)
@@ -120,12 +175,8 @@ function distributeCards(cards: Card[], players: Player[]) {
   })
 }
 
-function initializeTurn(players: Player[]) {
-  return Turns.nextTurn(players.length, Turns.Nobody())
-}
-
 function playCard(game: Game, { card: playedCard }: ActionPlay) {
-  const currentPlayer = getCurrentPlayer(game);
+  const currentPlayer = getActivePlayer(game);
   if (Opt.isNone(currentPlayer)) {
     return game;
   }
@@ -150,8 +201,8 @@ function playCard(game: Game, { card: playedCard }: ActionPlay) {
   }
 }
 
-function flushCards(gameCards: GameCard[]) {
-  return gameCards.map(gameCard => {
+function flushCards({ cards }: Game) {
+  return cards.map(gameCard => {
     if (GameCards.isPlayed(gameCard)) {
       return GameCards.Flushed(gameCard.card)
     }
@@ -159,54 +210,138 @@ function flushCards(gameCards: GameCard[]) {
   })
 }
 
-function getPlayWinner({ cards, players }: Game) {
+function rakeCards({ cards }: Game, raker: GamePlayer) {
+  return cards.map(gameCard => {
+    if (GameCards.isPlayed(gameCard)) {
+      return GameCards.Hand(gameCard.card, raker)
+    }
+    return gameCard
+  })
+}
+
+function getPlayWinner({ cards, players }: Game, forceWin = false) {
+  let winner = Opt.None<GamePlayer>()
+
   const playedCards = cards.filter(GameCards.isPlayed)
-  if (playedCards.length < players.length) {
-    return Turns.Nobody()
+  if (!forceWin && playedCards.length < players.length) {
+    return { winner, players }
   }
   
-  let winner = { 
-    rank: 0, 
-    turn: Turns.Nobody() 
-  }
-  for (let { card, player } of playedCards) {
-    const rank = Cards.rankToNumber(card.rank)
-    const playerIndex = players.indexOf(player)
+  const rankPerPlayers = playedCards.map(({ card, player }) => {
+    const rank = Cards.getRankInNumber(card)
+    return { rank, player }
+  })
 
-    if (playerIndex >= 0 && rank >= winner.rank) {
-      winner = { 
-        rank, 
-        turn: Turns.Active(playerIndex) 
-      }
+  let highestRank = 0
+  for (const { rank, player } of rankPerPlayers) {
+    if (rank > highestRank) {
+      highestRank = rank
+      winner = Opt.Some(player)
     }
   }
 
-  return winner.turn
+  const newPlayers = players.map(player => {
+    if (Opt.isSome(winner) && GamePlayers.isEqual(winner.value, player)) {
+      return GamePlayers.WonPlay(player.player)
+    }
+    return GamePlayers.Passive(player.player)
+  })
+
+  return {
+    winner,
+    players: newPlayers,
+  }
 }
 
 function getGameWinner({ cards, players }: Game) {
-  const handedCardsCounts = players.map(player => {
-    const playersCards = cards.filter(card => 
+  let hasWinner = false
+  const newPlayers = players.map((player) => {
+    const cardsInHand = cards.filter(card => 
       GameCards.isCardHandedBy(player, card)
-    );
-    return playersCards.length;
+    )
+
+    if (cardsInHand.length === 0) {
+      hasWinner = true
+      return GamePlayers.WonGame(player.player)
+    }
+    return GamePlayers.Passive(player.player)
   })
 
-  let winner = Turns.Nobody()
-  for (let [index, count] of handedCardsCounts.entries()) {
-    if (count === 0) {
-      winner = Turns.Active(index)
+  return { hasWinner, players: newPlayers }
+}
+
+function getDefaultNextPlayers(game: Game) {
+  const { players } = game
+  const currentActivePlayer = getActivePlayer(game)
+  if (Opt.isNone(currentActivePlayer)) {
+    return players
+  }
+
+  const currentActivePlayerId = currentActivePlayer.value.player.id
+  const nextActivePlayerId = (currentActivePlayerId + 1) % players.length
+
+  return players.map((player) => {
+    if (nextActivePlayerId === player.player.id) {
+      return GamePlayers.Active(player.player)
+    }
+    return GamePlayers.Passive(player.player)
+  })
+}
+
+function getStartingNextPlayers({ players }: Game) {
+  const playWinner = players.find(GamePlayers.isWonPlay)
+  if (!playWinner) {
+    return players
+  }
+
+  return players.map((player) => {
+    if (GamePlayers.isEqual(player, playWinner)) {
+      return GamePlayers.Active(player.player)
+    }
+    return GamePlayers.Passive(player.player)
+  })
+}
+
+function getActivePlayer({ players }: Game): Option<PlayerActive> {
+  const activePlayer = players.find(GamePlayers.isActive)
+  if (!activePlayer) {
+    return Opt.None()
+  }
+  return Opt.Some(activePlayer)
+}
+
+export function divideCardsByState({ cards }: Game) {
+  let handCards = []
+  let playedCards = []
+  let deckCards = []
+  
+  for (const card of cards) {
+    if (GameCards.isPlayed(card)) {
+      playedCards.push(card)
+    }
+    if (GameCards.isHand(card)) {
+      handCards.push(card)
+    }
+    if (GameCards.isDeck(card)) {
+      deckCards.push(card)
     }
   }
 
-  return winner
+  return {
+    handCards,
+    playedCards,
+    deckCards,
+  }
 }
 
-function getCurrentPlayer({ players, turn }: Game): Option<Player> {
-  switch (turn.kind) {
-    case 'nobody':
-      return Opt.None()
-    case 'active':
-      return Opt.Some(players[turn.index])
-  } 
+export function getCurrentPlayerHands(game: Game) {
+  const activePlayer = getActivePlayer(game)
+  if (Opt.isNone(activePlayer)) {
+    return []
+  }
+
+  const { cards } = game
+  return cards.filter(card => 
+    GameCards.isCardHandedBy(activePlayer.value, card)
+  )
 }

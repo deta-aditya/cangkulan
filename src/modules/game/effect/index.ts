@@ -1,4 +1,5 @@
-import type { TurnActive } from "../turn"
+import type { GamePlayer } from "../player"
+import type { PlayEndingNextAction } from "./nextAction"
 
 export type GameEffect =
   | EffectNoOp
@@ -10,15 +11,16 @@ interface EffectNoOp {
 
 interface EffectPlayEnding {
   kind: 'play-ending'
-  winner: TurnActive
+  winner: GamePlayer
+  nextAction: PlayEndingNextAction
 }
 
 export function NoOp(): GameEffect {
   return { kind: 'noop' }
 }
 
-export function PlayEnding(winner: TurnActive): GameEffect {
-  return { kind: 'play-ending', winner }
+export function PlayEnding(winner: GamePlayer, nextAction: PlayEndingNextAction): GameEffect {
+  return { kind: 'play-ending', winner, nextAction }
 }
 
 export function isPlayEnding(effect: GameEffect): effect is EffectPlayEnding {

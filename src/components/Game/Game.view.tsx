@@ -1,101 +1,105 @@
-import { useEffect, useMemo, useReducer } from "react"
-import logifier from "../../services/logifier/logifier"
-import { Card } from "../../modules/card"
+import { useEffect, useReducer } from "react"
+import * as GameModule from "../../modules/game";
+import * as GameAction from "../../modules/game/action";
+import * as GameEffect from "../../modules/game/effect";
+import * as GamePlayers from "../../modules/game/player";
+import * as Opt from "../../modules/option";
+
+import type { Card } from "../../modules/card"
+
 import PlayingCardView from '../PlayingCard';
-import { extractHands, extractPlays, getSuitInPlay, getTopMostDeck, initializeGame, isHandsPlayable } from "./Game.helpers"
-import { initialGameState, gameReducer } from "./Game.reducers"
-import {
-  cardContainer,
-  cardList,
-  deck,
-  gameLayout, 
-  gameTable, 
-  playedCard, 
-  playerItem, 
-  playerName, 
-  sidebar, 
-  sidebarHeader,
-  winnerName,
-} from "./Game.styles"
+import * as css from "./Game.styles"
+import { getPlaySuit, getTopMostDeck, isHandPlayable, sortGamePlayers } from "./Game.helpers"
+
+const PLAYERS = ['Heejin', 'Hyunjin', 'Haseul', 'Vivi']
 
 const Game = () => {
-  const players = ['Heejin', 'Hyunjin', 'Haseul', 'Vivi']
-  const [gameState, dispatch] = useReducer(
-    gameReducer,
-    initialGameState(players),
-    () => initializeGame(players),
-  )
+  const [gameState, dispatch] = useReducer(GameModule.reduce, null, () => GameModule.create(PLAYERS))
+  const { players: gamePlayers, effect: gameEffect } = gameState
 
-  const hands = useMemo(
-    () => extractHands(gameState.cards, players),
-    [gameState.cards, players],
-  )
+  const { 
+    handCards, 
+    playedCards,
+    deckCards, 
+  } = GameModule.divideCardsByState(gameState)
 
-  const plays = useMemo(
-    () => extractPlays(gameState.cards, players),
-    [gameState.cards, players],
-  )
+  const perhapsGameWinner = gamePlayers.find(GamePlayers.isWonGame)
+  const gameWinner = Opt.fromNullable(perhapsGameWinner)
+  const isPlaying = gamePlayers.some(GamePlayers.isActive)
 
-  const isGameWon = gameState.winner >= 0
-  const isPlaying = gameState.turn >= 0
-  const suitInPlay = getSuitInPlay(plays)
-  const topMostDeck = getTopMostDeck(gameState.cards)
-  const playerHasPlayableCard = 
+  const sortedGamePlayers = sortGamePlayers(gamePlayers)
+
+  const suitInPlay = getPlaySuit(playedCards)
+  const topMostDeck = getTopMostDeck(deckCards)
+  const activePlayerHand = GameModule.getCurrentPlayerHands(gameState)
+
+  const activePlayerHasPlayableCard = 
     isPlaying
-    && isHandsPlayable(hands[gameState.turn], suitInPlay)
-  const disableDeck = isGameWon 
-    || playerHasPlayableCard 
-    || gameState.effect.kind === 'play-ending'
+    && isHandPlayable(suitInPlay, activePlayerHand)
+
+  const disableDeck = 
+    Opt.isSome(gameWinner) 
+    || activePlayerHasPlayableCard 
+    || GameEffect.isPlayEnding(gameEffect)
 
   const handlePlayCard = (card: Card) => {
-    dispatch({ kind: 'play', card })
+    dispatch(GameAction.Play(card))
   }
 
   const handleDrawCard = (card: Card) => {
-    dispatch({ kind: 'draw', card })
+    dispatch(GameAction.Draw(card))
+  }
+
+  const handleRakeCards = () => {
+    dispatch(GameAction.Rake())
   }
 
   useEffect(() => {
-    if (gameState.effect.kind === 'play-ending') {
+    if (GameEffect.isPlayEnding(gameEffect)) {
       setTimeout(() => {
-        dispatch({ kind: 'play-next' })
+        dispatch(GameAction.PlayNext())
       }, 1000)
     }
-  }, [gameState.effect.kind])
+  }, [gameEffect.kind])
 
   return (
-    <div className={gameLayout}>
-      <div className={sidebar}>
-        <h2 className={sidebarHeader}>
+    <div className={css.gameLayout}>
+      <div className={css.sidebar}>
+        <h2 className={css.sidebarHeader}>
           Players
         </h2>
-        {hands.map((hand, idx) => {
-          const player = players[idx]
-          const isThisPlayersTurn = idx === gameState.turn
+        {sortedGamePlayers.map((gamePlayer) => {
+          const { player } = gamePlayer
+          const { name } = player
+
+          const isPlayerActive = GamePlayers.isActive(gamePlayer)
           const isPlayerWinningCurrentPlay = 
-            gameState.effect.kind === 'play-ending' 
-            && gameState.effect.winnerIndex === idx
+            GameEffect.isPlayEnding(gameEffect) 
+            && GamePlayers.isEqual(gameEffect.winner, gamePlayer)
+          
+          const playerHand = handCards.filter(card => 
+            GamePlayers.isEqual(card.player, gamePlayer)
+          )
           
           return (
-            <div key={`hand-${player}`} className={playerItem}>
-              <h3 className={playerName(isPlayerWinningCurrentPlay)}>
-                {player}
+            <div key={`hand-${name}`} className={css.playerItem}>
+              <h3 className={css.playerName(isPlayerWinningCurrentPlay)}>
+                {name}
               </h3>
-              <div className={cardList}>
-                {hand.map((card) => {
-                  const disableCard = isGameWon 
-                    || isThisPlayersTurn 
-                    && suitInPlay && suitInPlay !== card.suit
+              <div className={css.cardList}>
+                {playerHand.map(({ card }) => {
+                  const isCardPlayable = Opt.isNone(suitInPlay) || suitInPlay.value === card.suit
+                  const disableCard = Opt.isSome(gameWinner) || (isPlayerActive && !isCardPlayable)
                   return (
                     <div
                       key={`hand-${card.rank}-${card.suit}`}
-                      className={cardContainer}
+                      className={css.cardContainer}
                     >
                       <PlayingCardView
                         card={card}
-                        down={!isThisPlayersTurn}
+                        down={!isPlayerActive}
                         disabled={disableCard}
-                        onClick={isThisPlayersTurn ? () => handlePlayCard(card) : undefined}
+                        onClick={isPlayerActive ? () => handlePlayCard(card) : undefined}
                       />
                     </div>
                   )
@@ -105,23 +109,30 @@ const Game = () => {
           )
         })}
       </div>
-      <div className={gameTable}>
-        {isGameWon && (
-          <div className={winnerName}>
-            {players[gameState.winner]} wins the game!
+      <div className={css.gameTable}>
+        {Opt.isSome(gameWinner) && (
+          <div className={css.winnerName}>
+            {GamePlayers.getName(gameWinner.value)} wins the game!
           </div>
         )}
-        <div className={deck}>
-          {topMostDeck && <PlayingCardView 
-            card={topMostDeck} 
-            onClick={() => handleDrawCard(topMostDeck)}
-            disabled={disableDeck}
-            down
-          />}
+        <div className={css.deck}>
+          {Opt.isSome(topMostDeck) ? (
+            <PlayingCardView 
+              card={topMostDeck.value.card} 
+              onClick={() => handleDrawCard(topMostDeck.value.card)}
+              disabled={disableDeck}
+              down
+            />
+          ) : (
+            !disableDeck && <button className={css.rakeButton} onClick={handleRakeCards}>Rake</button>
+          )}
         </div>
-        {plays.map((play, idx) => (
-          <div key={`play-${idx}`} className={playedCard(idx, players.length)}>
-            {play && <PlayingCardView card={play} />}
+        {playedCards.map((play) => (
+          <div 
+            key={`play-${GamePlayers.getId(play.player)}`} 
+            className={css.playedCard(GamePlayers.getId(play.player), gamePlayers.length)}
+          >
+            <PlayingCardView card={play.card} />
           </div>
         ))}
       </div>

@@ -53,6 +53,11 @@ export const playedCard = (playerNo: number, numOfPlayers: number) => css`
 
 export const deck = css`
   position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 80px;
   top: calc(50% - 70px);
   left: calc(50% - 50px);
 `
@@ -61,4 +66,17 @@ export const winnerName = css`
   text-align: center;
   margin-top: 30px;
   font-size: 24px;
+  color: black;
+`
+
+export const rakeButton = css`
+  padding: 10px;
+  border-radius: 4px;
+  border: none;
+  border: 1px solid #ccc;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #eee;
+  }
 `

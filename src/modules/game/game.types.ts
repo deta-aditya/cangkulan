@@ -1,13 +1,11 @@
 import { GameCard } from "./card"
 import { GameEffect } from "./effect"
-import { Turn } from "./turn"
+import { GamePlayer } from "./player"
 
 export interface Game {
   cards: GameCard[]
-  players: Player[]
-  turn: Turn
+  players: GamePlayer[]
   effect: GameEffect
-  winner: Turn
 }
 
 export type Player = string

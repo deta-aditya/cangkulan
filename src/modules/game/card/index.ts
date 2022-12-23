@@ -1,5 +1,6 @@
 import { Card } from "../../card"
-import { Player } from "../game.types"
+import * as GamePlayers from "../player"
+import type { GamePlayer } from "../player"
 
 export type GameCard =
   | CardDeck
@@ -15,13 +16,13 @@ export interface CardDeck {
 export interface CardHand {
   kind: 'hand'
   card: Card
-  player: Player
+  player: GamePlayer
 }
 
 export interface CardPlayed {
   kind: 'played'
   card: Card
-  player: Player
+  player: GamePlayer
 }
 
 export interface CardFlushed {
@@ -33,11 +34,11 @@ export function Deck(card: Card): GameCard {
   return { kind: 'deck', card, }
 }
 
-export function Hand(card: Card, player: Player): GameCard {
+export function Hand(card: Card, player: GamePlayer): GameCard {
   return { kind: 'hand', card, player }
 }
 
-export function Played(card: Card, player: Player): GameCard {
+export function Played(card: Card, player: GamePlayer): GameCard {
   return { kind: 'played', card, player }
 }
 
@@ -57,10 +58,14 @@ export function isDeck(gameCard: GameCard): gameCard is CardDeck {
   return gameCard.kind === 'deck'
 }
 
-export function isCardOwnedBy(player: Player, gameCard: GameCard) {
-  return (gameCard.kind === 'played' || gameCard.kind === 'hand') && gameCard.player === player
+export function isCardOwnedBy(player: GamePlayer, gameCard: GameCard) {
+  return isCardHandedBy(player, gameCard) || isCardPlayedBy(player, gameCard)
 }
 
-export function isCardHandedBy(player: Player, gameCard: GameCard) {
-  return gameCard.kind === 'hand' && gameCard.player === player
+export function isCardHandedBy(player: GamePlayer, gameCard: GameCard): gameCard is CardHand {
+  return isHand(gameCard) && GamePlayers.isEqual(player, gameCard.player)
+}
+
+export function isCardPlayedBy(player: GamePlayer, gameCard: GameCard) {
+  return isPlayed(gameCard) && GamePlayers.isEqual(player, gameCard.player)
 }

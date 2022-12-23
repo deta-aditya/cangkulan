@@ -51,6 +51,17 @@ export function when<A>(condition: boolean, value: A): Option<A> {
   return None();
 }
 
+export function fromNullable<A>(value: A | null | undefined): Option<A> {
+  if (value !== undefined && value !== null) {
+    return Some(value)
+  }
+  return None();
+}
+
 export function isNone<A>(option: Option<A>): option is None {
   return option.kind === 'none';
+}
+
+export function isSome<A>(option: Option<A>): option is Some<A> {
+  return option.kind === 'some';
 }
