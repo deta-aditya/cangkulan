@@ -7,7 +7,7 @@ export const gameLayout = css`
 export const sidebar = css`
   height: 100vh;
   width: 500px;
-  background: #fff;
+  background: #333;
 `
 
 export const sidebarHeader = css`
@@ -16,12 +16,22 @@ export const sidebarHeader = css`
 `
 
 export const playerItem = css`
-  border-top: 1px solid #ddd;
+  border-top: 1px solid #444;
 `
 
 export const playerName = (isWinning: boolean) => css`
   margin: 16px 16px 8px;
-  color: ${isWinning ? 'red' : 'black'}
+  color: ${isWinning ? '#ff4958' : '#ddd'};
+  display: flex;
+  align-items: center;
+`
+
+export const playerActiveIndicator = css`
+  margin-left: 8px;
+  width: 10px;
+  height: 10px;
+  border-radius: 10px;
+  background-color: #ddd;
 `
 
 export const cardList = css`
@@ -41,6 +51,7 @@ export const cardContainer = css`
 export const gameTable = css`
   position: relative;
   flex-grow: 1;
+  background-color: #222;
 `
 
 // This style determines card position based on player number.
@@ -66,7 +77,7 @@ export const winnerName = css`
   text-align: center;
   margin-top: 30px;
   font-size: 24px;
-  color: black;
+  color: #eee;
 `
 
 export const rakeButton = css`

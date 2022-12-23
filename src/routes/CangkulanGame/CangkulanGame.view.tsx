@@ -1,4 +1,4 @@
-import { useEffect, useReducer } from "react"
+import React, { useEffect, useReducer } from "react"
 import * as GameModule from "../../modules/game";
 import * as GameAction from "../../modules/game/action";
 import * as GameEffect from "../../modules/game/effect";
@@ -7,13 +7,15 @@ import * as Opt from "../../modules/option";
 
 import type { Card } from "../../modules/card"
 
-import PlayingCardView from '../PlayingCard';
-import * as css from "./Game.styles"
-import { getPlaySuit, getTopMostDeck, isHandPlayable, sortGamePlayers } from "./Game.helpers"
+import PlayingCardView from '../../components/PlayingCard';
+import * as css from "./CangkulanGame.styles"
+import { getPlaySuit, getTopMostDeck, isHandPlayable, sortGamePlayers } from "./CangkulanGame.helpers"
+import { useNavigate } from "react-router-dom";
 
 const PLAYERS = ['Heejin', 'Hyunjin', 'Haseul', 'Vivi']
 
-const Game = () => {
+const CangkulanGame = () => {
+  const navigate = useNavigate()
   const [gameState, dispatch] = useReducer(GameModule.reduce, null, () => GameModule.create(PLAYERS))
   const { players: gamePlayers, effect: gameEffect } = gameState
 
@@ -42,6 +44,16 @@ const Game = () => {
     || activePlayerHasPlayableCard 
     || GameEffect.isPlayEnding(gameEffect)
 
+  const handleBack = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+    e.preventDefault()
+    navigate('/')
+  }
+
+  const handlePlayAgain = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+    e.preventDefault()
+    dispatch(GameAction.Reset())
+  }
+
   const handlePlayCard = (card: Card) => {
     dispatch(GameAction.Play(card))
   }
@@ -66,12 +78,10 @@ const Game = () => {
     <div className={css.gameLayout}>
       <div className={css.sidebar}>
         <h2 className={css.sidebarHeader}>
-          Players
+          <a href="#" onClick={handleBack}>&times;</a> Players
         </h2>
         {sortedGamePlayers.map((gamePlayer) => {
-          const { player } = gamePlayer
-          const { name } = player
-
+          const name = GamePlayers.getName(gamePlayer)
           const isPlayerActive = GamePlayers.isActive(gamePlayer)
           const isPlayerWinningCurrentPlay = 
             GameEffect.isPlayEnding(gameEffect) 
@@ -85,6 +95,7 @@ const Game = () => {
             <div key={`hand-${name}`} className={css.playerItem}>
               <h3 className={css.playerName(isPlayerWinningCurrentPlay)}>
                 {name}
+                {isPlayerActive && <div className={css.playerActiveIndicator} />}
               </h3>
               <div className={css.cardList}>
                 {playerHand.map(({ card }) => {
@@ -112,7 +123,8 @@ const Game = () => {
       <div className={css.gameTable}>
         {Opt.isSome(gameWinner) && (
           <div className={css.winnerName}>
-            {GamePlayers.getName(gameWinner.value)} wins the game!
+            {GamePlayers.getName(gameWinner.value)} wins the game!<br/> 
+            <a href="#" onClick={handlePlayAgain}>Play again</a>
           </div>
         )}
         <div className={css.deck}>
@@ -140,4 +152,4 @@ const Game = () => {
   )
 }
 
-export default Game
+export default CangkulanGame

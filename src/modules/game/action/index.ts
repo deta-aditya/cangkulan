@@ -5,6 +5,7 @@ export type GameAction =
   | ActionPlayNext
   | ActionDraw
   | ActionRake
+  | ActionReset
 
 export interface ActionPlay { 
   kind: 'play'
@@ -24,6 +25,10 @@ export interface ActionRake {
   kind: 'rake'
 }
 
+export interface ActionReset {
+  kind: 'reset'
+}
+
 export function Play(card: Card): GameAction {
   return { kind: 'play', card }
 }
@@ -38,4 +43,8 @@ export function Draw(card: Card): GameAction {
 
 export function Rake(): GameAction {
   return { kind: 'rake' }
+}
+
+export function Reset(): GameAction {
+  return { kind: 'reset' }
 }

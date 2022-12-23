@@ -20,6 +20,9 @@ export function create(playerNames: string[], cardsPerPlayer = CARDS_PER_PLAYER)
     players,
     cards: initalizeCards(players, cardsPerPlayer),
     effect: Effects.NoOp(),
+    config: {
+      cardsPerPlayer,
+    }
   }
 }
 
@@ -33,6 +36,8 @@ export function reduce(game: Game, action: GameAction): Game {
       return handleDrawAction(game, action)
     case 'rake':
       return handleRakeAction(game)
+    case 'reset':
+      return handleReset(game)
     default:
       return game
   }
@@ -141,6 +146,11 @@ function handleRakeAction(game: Game): Game {
       PlayEndingNextActions.Rake(currentPlayer.value),
     )
   }
+}
+
+function handleReset({ players, config }: Game): Game {
+  const playerNames = players.map(GamePlayers.getName)
+  return create(playerNames, config.cardsPerPlayer)
 }
   
 function initializePlayers(names: string[]) {
