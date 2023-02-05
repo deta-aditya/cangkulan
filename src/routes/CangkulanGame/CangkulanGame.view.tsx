@@ -29,13 +29,7 @@ const CangkulanGame = () => {
   const perhapsGameWinner = gamePlayers.find(GamePlayers.isWonGame)
   const gameWinner = Opt.fromNullable(perhapsGameWinner)
 
-  const perhapsActivePlayer = gamePlayers.find(GamePlayers.isActive)
-  const activePlayer = Opt.fromNullable(perhapsActivePlayer)
-
   const isPlaying = gamePlayers.some(GamePlayers.isActive)
-
-  const sortedGamePlayers = sortGamePlayers(gamePlayers)
-
   const suitInPlay = getPlaySuit(playedCards)
   const topMostDeck = getTopMostDeck(deckCards)
   const activePlayerHand = GameModule.getCurrentPlayerHands(gameState)

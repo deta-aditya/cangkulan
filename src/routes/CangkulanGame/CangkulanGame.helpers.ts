@@ -2,10 +2,10 @@ import * as Opt from "../../modules/option";
 import * as GameCards from "../../modules/game/card";
 import * as GamePlayers from "../../modules/game/player";
 
-import type { Option } from "../../modules/option";
-import { CardDeck, CardHand, CardPlayed, GameCard } from "../../modules/game/card";
 import type { Suit } from "../../modules/card"
+import type { Option } from "../../modules/option";
 import type { GamePlayer, PlayerActive } from "../../modules/game/player";
+import type { CardDeck, CardHand, CardPlayed, GameCard } from "../../modules/game/card";
 
 type HandCardsPerPlayer = Record<number, CardHand[]>
 type PlayedCardsPerPlayer = Record<number, Option<CardPlayed>>
