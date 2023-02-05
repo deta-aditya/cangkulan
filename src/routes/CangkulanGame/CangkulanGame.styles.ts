@@ -1,86 +1,117 @@
 import { css } from "@emotion/css";
 
-export const gameLayout = css`
-  display: flex;
-` 
-
-export const sidebar = css`
+export const background = css`
+  background-color: #333333;
   height: 100vh;
-  width: 500px;
-  background: #333;
-`
+  display: flex;
+  flex-direction: column;
+`;
 
-export const sidebarHeader = css`
-  margin: 0;
+export const navbar = css`
   padding: 16px;
-`
-
-export const playerItem = css`
-  border-top: 1px solid #444;
-`
-
-export const playerName = (isWinning: boolean) => css`
-  margin: 16px 16px 8px;
-  color: ${isWinning ? '#ff4958' : '#ddd'};
   display: flex;
+  align-items: baseline;
+  color: #fff;
+`;
+
+export const backLink = css`
+  color: #fff;
+  font-size: 24px;
+`;
+
+export const title = css`
+  font-size: 24px;
+  margin: 0 0 0 16px;
+`;
+
+export const layout4 = css`
+  display: grid;
+  grid-template-columns: 225px auto 225px;
+  grid-template-rows: 160px auto 160px;
+  color: #fff;
+  flex-grow: 1;
   align-items: center;
-`
+  justify-items: center;
 
-export const playerActiveIndicator = css`
-  margin-left: 8px;
-  width: 10px;
-  height: 10px;
-  border-radius: 10px;
-  background-color: #ddd;
-`
-
-export const cardList = css`
-  display: flex;
-  margin: 0 0 16px 16px;
-  width: calc(100% - 16px);
-  overflow-x: auto;
-`
-
-export const cardContainer = css`
-  margin-left: -30px;
-  &:first-of-type {
-    margin-left: 0px;
+  & .player-container:nth-of-type(1) {
+    grid-row: 3 / 4;
+    grid-column: 2 / 3;
   }
-`
+
+  & .player-container:nth-of-type(2) {
+    grid-row: 1 / 4;
+    grid-column: 1 / 2;
+  }
+
+  & .player-container:nth-of-type(3) {
+    grid-row: 1 / 2;
+    grid-column: 2 / 3;
+  }
+
+  & .player-container:nth-of-type(4) {
+    grid-row: 1 / 4;
+    grid-column: 3 / 4;
+  }
+`;
 
 export const gameTable = css`
-  position: relative;
-  flex-grow: 1;
-  background-color: #222;
-`
-
-// This style determines card position based on player number.
-// Looks like trigonometry is used in real life after all!
-export const playedCard = (playerNo: number, numOfPlayers: number) => css`
-  position: absolute;
-  top: calc(50% - 70px - ${Math.cos(Math.PI * playerNo / (numOfPlayers / 2)) * 90}px);
-  left: calc(50% - 50px + ${Math.sin(Math.PI * playerNo / (numOfPlayers / 2)) * 70}px);
-`
-
-export const deck = css`
-  position: absolute;
-  display: flex;
+  place-self: stretch;
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  grid-template-rows: repeat(3, auto);
   align-items: center;
-  justify-content: center;
-  width: 60px;
-  height: 80px;
-  top: calc(50% - 70px);
-  left: calc(50% - 50px);
-`
+  justify-items: center;
+  
+  & .player-play:nth-of-type(1) {
+    grid-row: 3 / 4;
+    grid-column: 2 / 3;
+  }
 
-export const winnerName = css`
-  text-align: center;
-  margin-top: 30px;
-  font-size: 24px;
-  color: #eee;
-`
+  & .player-play:nth-of-type(2) {
+    grid-row: 1 / 4;
+    grid-column: 1 / 2;
+  }
 
-export const rakeButton = css`
+  & .player-play:nth-of-type(3) {
+    grid-row: 1 / 2;
+    grid-column: 2 / 3;
+  }
+
+  & .player-play:nth-of-type(4) {
+    grid-row: 1 / 4;
+    grid-column: 3 / 4;
+  }
+`;
+
+// export const playerContainer = css`
+//   display: flex;
+
+// `;
+
+export const playerName = css`
+  margin: 0 0 8px;
+  font-size: 16px;
+`;
+
+export const playerNameWinPlay = css`
+  ${playerName}
+  color: #ff4958;
+`;
+
+export const playerHandHorizontal = css`
+  display: flex;
+  gap: 4px;
+`;
+
+export const playerHandVertical = css`
+  display: flex;
+  flex-direction: column;
+  & > *:not(:first-child) {
+    margin-top: -20px;
+  }
+`;
+
+export const centerButton = css`
   padding: 10px;
   border-radius: 4px;
   border: none;
@@ -90,4 +121,9 @@ export const rakeButton = css`
   &:hover {
     background-color: #eee;
   }
-`
+`;
+
+export const voidCard = css`
+  width: 60px;
+  height: 80px;
+`;

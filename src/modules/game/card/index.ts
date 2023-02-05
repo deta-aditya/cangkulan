@@ -69,3 +69,11 @@ export function isCardHandedBy(player: GamePlayer, gameCard: GameCard): gameCard
 export function isCardPlayedBy(player: GamePlayer, gameCard: GameCard) {
   return isPlayed(gameCard) && GamePlayers.isEqual(player, gameCard.player)
 }
+
+export function getKey({ card }: GameCard) {
+  return `${card.rank}-${card.suit}`
+}
+
+export function getSuit({ card }: GameCard) {
+  return card.suit
+}

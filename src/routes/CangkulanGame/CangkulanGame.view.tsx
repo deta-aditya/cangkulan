@@ -1,5 +1,6 @@
 import React, { useEffect, useReducer } from "react"
 import * as GameModule from "../../modules/game";
+import * as GameCards from "../../modules/game/card";
 import * as GameAction from "../../modules/game/action";
 import * as GameEffect from "../../modules/game/effect";
 import * as GamePlayers from "../../modules/game/player";
@@ -9,7 +10,7 @@ import type { Card } from "../../modules/card"
 
 import PlayingCardView from '../../components/PlayingCard';
 import * as css from "./CangkulanGame.styles"
-import { getPlaySuit, getTopMostDeck, isHandPlayable, sortGamePlayers } from "./CangkulanGame.helpers"
+import { getPlaySuit, getTopMostDeck, isHandPlayable, isPlayerIdActive, sortGamePlayers, groupCards } from "./CangkulanGame.helpers"
 import { useNavigate } from "react-router-dom";
 
 const PLAYERS = ['Heejin', 'Hyunjin', 'Haseul', 'Vivi']
@@ -17,16 +18,20 @@ const PLAYERS = ['Heejin', 'Hyunjin', 'Haseul', 'Vivi']
 const CangkulanGame = () => {
   const navigate = useNavigate()
   const [gameState, dispatch] = useReducer(GameModule.reduce, null, () => GameModule.create(PLAYERS))
-  const { players: gamePlayers, effect: gameEffect } = gameState
+  const { cards: gameCards, players: gamePlayers, effect: gameEffect } = gameState
 
   const { 
     handCards, 
     playedCards,
     deckCards, 
-  } = GameModule.divideCardsByState(gameState)
+  } = groupCards(gameCards, gamePlayers)
 
   const perhapsGameWinner = gamePlayers.find(GamePlayers.isWonGame)
   const gameWinner = Opt.fromNullable(perhapsGameWinner)
+
+  const perhapsActivePlayer = gamePlayers.find(GamePlayers.isActive)
+  const activePlayer = Opt.fromNullable(perhapsActivePlayer)
+
   const isPlaying = gamePlayers.some(GamePlayers.isActive)
 
   const sortedGamePlayers = sortGamePlayers(gamePlayers)
@@ -44,13 +49,16 @@ const CangkulanGame = () => {
     || activePlayerHasPlayableCard 
     || GameEffect.isPlayEnding(gameEffect)
 
+  const showPlayAgainButton = Opt.isSome(gameWinner);
+  const showDeck = Opt.isNone(gameWinner) && Opt.isSome(topMostDeck);
+  const showRakeButton = Opt.isNone(gameWinner) && Opt.isNone(topMostDeck) && !disableDeck;
+
   const handleBack = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
     e.preventDefault()
     navigate('/')
   }
 
-  const handlePlayAgain = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
-    e.preventDefault()
+  const handlePlayAgain = () => {
     dispatch(GameAction.Reset())
   }
 
@@ -66,6 +74,13 @@ const CangkulanGame = () => {
     dispatch(GameAction.Rake())
   }
 
+  const stylePerPlayer = [
+    css.playerHandHorizontal,
+    css.playerHandVertical,
+    css.playerHandHorizontal,
+    css.playerHandVertical,
+  ]
+
   useEffect(() => {
     if (GameEffect.isPlayEnding(gameEffect)) {
       setTimeout(() => {
@@ -75,78 +90,65 @@ const CangkulanGame = () => {
   }, [gameEffect.kind])
 
   return (
-    <div className={css.gameLayout}>
-      <div className={css.sidebar}>
-        <h2 className={css.sidebarHeader}>
-          <a href="#" onClick={handleBack}>&times;</a> Players
-        </h2>
-        {sortedGamePlayers.map((gamePlayer) => {
-          const name = GamePlayers.getName(gamePlayer)
-          const isPlayerActive = GamePlayers.isActive(gamePlayer)
-          const isPlayerWinningCurrentPlay = 
+    <div className={css.background}>
+      <div className={css.navbar}>
+        <a className={css.backLink} href="#" onClick={handleBack}>&times;</a>
+        <h1 className={css.title}>Cangkulan</h1>
+      </div>
+      <div className={css.layout4}>
+        {gamePlayers.map((player) => {
+          const playerId = GamePlayers.getId(player)
+          const isPlayerActive = GamePlayers.isActive(player)
+          const isPlayerWinningPlay = 
             GameEffect.isPlayEnding(gameEffect) 
-            && GamePlayers.isEqual(gameEffect.winner, gamePlayer)
-          
-          const playerHand = handCards.filter(card => 
-            GamePlayers.isEqual(card.player, gamePlayer)
-          )
-          
+            && GamePlayers.isEqual(gameEffect.winner, player)
+          const isPlayerWinningGame = Opt.isSome(gameWinner) && GamePlayers.isEqual(gameWinner.value, player)
           return (
-            <div key={`hand-${name}`} className={css.playerItem}>
-              <h3 className={css.playerName(isPlayerWinningCurrentPlay)}>
-                {name}
-                {isPlayerActive && <div className={css.playerActiveIndicator} />}
-              </h3>
-              <div className={css.cardList}>
-                {playerHand.map(({ card }) => {
+            <section className="player-container">
+              <h2 className={isPlayerWinningPlay ? css.playerNameWinPlay : css.playerName}>
+                {GamePlayers.getName(player)}
+                {isPlayerWinningGame && ' won the game!'}
+              </h2>
+              <div className={stylePerPlayer[playerId]}>
+                {handCards[playerId].map(hand => {
+                  const { card } = hand
                   const isCardPlayable = Opt.isNone(suitInPlay) || suitInPlay.value === card.suit
                   const disableCard = Opt.isSome(gameWinner) || (isPlayerActive && !isCardPlayable)
                   return (
-                    <div
-                      key={`hand-${card.rank}-${card.suit}`}
-                      className={css.cardContainer}
-                    >
-                      <PlayingCardView
-                        card={card}
-                        down={!isPlayerActive}
-                        disabled={disableCard}
-                        onClick={isPlayerActive ? () => handlePlayCard(card) : undefined}
-                      />
-                    </div>
-                  )
+                    <PlayingCardView
+                      key={`hand-${playerId}-${GameCards.getKey(hand)}`}
+                      card={card}
+                      down={!isPlayerActive}
+                      disabled={disableCard}
+                      onClick={isPlayerActive ? () => handlePlayCard(card) : undefined} 
+                    />
+                  );
                 })}
               </div>
-            </div>
+            </section>
           )
         })}
-      </div>
-      <div className={css.gameTable}>
-        {Opt.isSome(gameWinner) && (
-          <div className={css.winnerName}>
-            {GamePlayers.getName(gameWinner.value)} wins the game!<br/> 
-            <a href="#" onClick={handlePlayAgain}>Play again</a>
-          </div>
-        )}
-        <div className={css.deck}>
-          {Opt.isSome(topMostDeck) ? (
-            <PlayingCardView 
+        <div className={css.gameTable}>
+          {Object.entries(playedCards).map(([playerId, perhapsCard]) => (
+            <section key={`play-${playerId}`} className="player-play">
+              {Opt.fold(
+                gameCard => <PlayingCardView card={gameCard.card} />, 
+                () => <div className={css.voidCard} />, 
+                perhapsCard
+              )}
+            </section>
+          ))}
+          <div>
+            {showDeck && <PlayingCardView 
               card={topMostDeck.value.card} 
               onClick={() => handleDrawCard(topMostDeck.value.card)}
               disabled={disableDeck}
               down
-            />
-          ) : (
-            !disableDeck && <button className={css.rakeButton} onClick={handleRakeCards}>Rake</button>
-          )}
-        </div>
-        {playedCards.map((play) => (
-          <div 
-            key={`play-${GamePlayers.getId(play.player)}`} 
-            className={css.playedCard(GamePlayers.getId(play.player), gamePlayers.length)}
-          >
-            <PlayingCardView card={play.card} />
+            />}
+            {showRakeButton && <button className={css.centerButton} onClick={handleRakeCards}>Rake</button>}
+            {showPlayAgainButton && <button className={css.centerButton} onClick={handlePlayAgain}>Play Again</button>}
           </div>
-        ))}
+        </div>
       </div>
     </div>
   )
