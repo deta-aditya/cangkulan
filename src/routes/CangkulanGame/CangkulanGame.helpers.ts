@@ -4,7 +4,7 @@ import * as GamePlayers from "../../modules/game/player";
 
 import type { Suit } from "../../modules/card"
 import type { Option } from "../../modules/option";
-import type { GamePlayer, PlayerActive } from "../../modules/game/player";
+import type { GamePlayer } from "../../modules/game/player";
 import type { CardDeck, CardHand, CardPlayed, GameCard } from "../../modules/game/card";
 
 type HandCardsPerPlayer = Record<number, CardHand[]>
@@ -32,10 +32,6 @@ export function getTopMostDeck(deckCards: CardDeck[]): Option<CardDeck> {
 
 export function isHandPlayable(suit: Option<Suit>, handCards: GameCard[]) {
   return Opt.isNone(suit) || handCards.some(({ card }) => card.suit === suit.value)
-}
-
-export function sortGamePlayers(players: GamePlayer[]) {
-  return players.sort((player1, player2) => GamePlayers.getId(player1) - GamePlayers.getId(player2));
 }
 
 export function groupCards(cards: GameCard[], players: GamePlayer[]) {
@@ -66,8 +62,4 @@ export function groupCards(cards: GameCard[], players: GamePlayer[]) {
   }
 
   return { deckCards, handCards, playedCards }
-}
-
-export function isPlayerIdActive(player: Option<PlayerActive>, id: number) {
-  return Opt.isSome(player) && GamePlayers.getId(player.value) === id
 }

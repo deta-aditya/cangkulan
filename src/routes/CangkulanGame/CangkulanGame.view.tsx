@@ -10,7 +10,7 @@ import type { Card } from "../../modules/card"
 
 import PlayingCardView from '../../components/PlayingCard';
 import * as css from "./CangkulanGame.styles"
-import { getPlaySuit, getTopMostDeck, isHandPlayable, isPlayerIdActive, sortGamePlayers, groupCards } from "./CangkulanGame.helpers"
+import { getPlaySuit, getTopMostDeck, isHandPlayable, groupCards } from "./CangkulanGame.helpers"
 import { useNavigate } from "react-router-dom";
 
 const PLAYERS = ['Heejin', 'Hyunjin', 'Haseul', 'Vivi']

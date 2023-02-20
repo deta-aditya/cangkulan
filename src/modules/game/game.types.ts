@@ -1,14 +1,12 @@
-import { GameCard } from "./card"
-import { GameEffect } from "./effect"
-import { GamePlayer } from "./player"
+import type { GameEffect } from "./effect"
+import type { GameCardList } from "./cardList"
+import type { GamePlayerList } from "./playerList"
 
 export interface Game {
-  cards: GameCard[]
-  players: GamePlayer[]
+  cards: GameCardList
+  players: GamePlayerList
   effect: GameEffect
   config: {
     cardsPerPlayer: number
   },
 }
-
-export type Player = string

@@ -3,7 +3,7 @@ export interface Player {
   name: string
 }
 
-export function toPlayers(names: string[]) {
+export function fromNames(names: string[]) {
   return names.map((name, idx) => ({
     id: idx,
     name,
