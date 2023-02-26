@@ -30,7 +30,7 @@ export function mapForNextPlay(players: GamePlayerList) {
 
   return players.map((gamePlayer) => {
     const { player } = gamePlayer
-    if (GamePlayers.isEqual(gamePlayer, playWinner)) {
+    if (GamePlayers.isPlayerEqual(gamePlayer, playWinner)) {
       return GamePlayers.Active(player)
     }
     return GamePlayers.Passive(player)
@@ -39,7 +39,7 @@ export function mapForNextPlay(players: GamePlayerList) {
 
 export function setPlayWinner(players: GamePlayerList, winner: GamePlayer) {
   return players.map(player => {
-    if (GamePlayers.isEqual(winner, player)) {
+    if (GamePlayers.isPlayerEqual(winner, player)) {
       return GamePlayers.WonPlay(player.player)
     }
     return GamePlayers.Passive(player.player)
@@ -48,7 +48,7 @@ export function setPlayWinner(players: GamePlayerList, winner: GamePlayer) {
 
 export function setGameWinner(players: GamePlayerList, winner: GamePlayer) {
   return players.map(player => {
-    if (GamePlayers.isEqual(winner, player)) {
+    if (GamePlayers.isPlayerEqual(winner, player)) {
       return GamePlayers.WonGame(player.player)
     }
     return GamePlayers.Passive(player.player)

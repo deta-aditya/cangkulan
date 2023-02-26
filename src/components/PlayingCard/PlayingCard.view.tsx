@@ -9,7 +9,7 @@ const PlayingCard = (props: Props) => {
   
   const handleOnClick = () => {
     if (!disabled) {
-      onClick?.()
+      onClick?.(card)
     }
   }
 

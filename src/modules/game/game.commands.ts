@@ -3,7 +3,7 @@ import * as Effects from "./effect";
 import * as PlayEndingNextActions from './effect/nextAction';
 import * as GameCardLists from "./cardList";
 import * as GamePlayerLists from "./playerList";
-import { getGameWinner, getPlayWinner } from "./game.queries";
+import { findGameWinner, findPlayWinner } from "./game.queries";
 import { create } from "./game.factories";
 
 import type { Card } from "../card";
@@ -31,7 +31,7 @@ export function play(game: Game, card: Card): Game {
   const playedGame = playCardWithoutWinnerCheck(game, card);
   const { players } = playedGame
 
-  const gameWinner = getGameWinner(playedGame);
+  const gameWinner = findGameWinner(playedGame);
   if (Opt.isSome(gameWinner)) {
     const newGameWinnerPlayers = GamePlayerLists.setGameWinner(
       players, 
@@ -43,7 +43,7 @@ export function play(game: Game, card: Card): Game {
     }
   }
 
-  const playWinner = getPlayWinner(playedGame)
+  const playWinner = findPlayWinner(playedGame)
   if (Opt.isSome(playWinner)) {
     const newPlayWinnerPlayers = GamePlayerLists.setPlayWinner(
       players, 
@@ -110,7 +110,7 @@ export function rake(game: Game): Game {
     return game;
   }
 
-  const playWinner = getPlayWinner(game, true);
+  const playWinner = findPlayWinner(game, true);
   if (Opt.isNone(playWinner)) {
     return game;
   }

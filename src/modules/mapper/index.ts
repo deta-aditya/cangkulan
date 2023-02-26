@@ -14,6 +14,11 @@ export const mapCommand = <TState, TArgs extends any[]>(
   return (...args: TArgs) => setter(current => command(current, ...args))
 }
 
+export const mapQuery = <S, A extends any[], R>(
+  state: S, 
+  query: (state: S, ...args: A) => R
+) => (...args: A) => query(state, ...args)
+
 // export const mapCommand0 = <TState>(
 //   command: (current: TState) => TState, 
 //   setter: Dispatch<SetStateAction<TState>>

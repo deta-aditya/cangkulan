@@ -4,5 +4,5 @@ export interface Props {
   card: Card
   down?: boolean
   disabled?: boolean
-  onClick?: () => void
+  onClick?: (card: Card) => void
 }
