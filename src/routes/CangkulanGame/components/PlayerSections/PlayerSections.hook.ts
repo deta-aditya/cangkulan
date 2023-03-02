@@ -18,6 +18,7 @@ const usePlayerSectionsView = () => {
     const playerId = GamePlayers.getId(player)
     const isPlayerActive = GamePlayers.isActive(player)
     const playerHands = handsPerPlayer[playerId]
+    const handStyle = STYLE_PER_PLAYER[playerId](playerHands.length);
     const hands = playerHands.map(hand => {
       const { card } = hand;
       const isCardPlayable = Opt.isNone(suitInPlay) || suitInPlay.value === card.suit
@@ -36,7 +37,7 @@ const usePlayerSectionsView = () => {
       isWinningPlay: isPlayerWinningPlay(player),
       isWinningGame: isWinningGame(player),
       isActive: isPlayerActive,
-      handStyle: STYLE_PER_PLAYER[playerId](hands.length),
+      handStyle,
       hands,
     }
   })
